@@ -198,6 +198,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             query_response = await self.query(user_input, messages, exposed_entities, 0)
         except OpenAIError as err:
             _LOGGER.error(err)
+            # Save partial history even on error to preserve context
+            self.history[conversation_id] = messages
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -208,6 +210,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
         except HomeAssistantError as err:
             _LOGGER.error(err, exc_info=err)
+            # Save partial history even on error to preserve context
+            self.history[conversation_id] = messages
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -424,6 +428,9 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         n_requests,
         function,
     ) -> OpenAIQueryResponse:
+        # First, append the assistant's message that contains the function_call
+        messages.append(message.model_dump(exclude_none=True))
+
         function_executor = get_function_executor(function["function"]["type"])
 
         try:
