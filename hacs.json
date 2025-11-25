@@ -1,5 +1,14 @@
 {
-  "name": "extended_openai_conversation",
+  "name": "Extended OpenAI Conversation",
+  "description": "A Home Assistant integration that extends the OpenAI Conversation component with advanced features like service execution, automation creation, API calls, and state history retrieval using OpenAI's function calling capabilities.",
   "render_readme": true,
-  "homeassistant": "2024.1.0b0"
+  "homeassistant": "2024.1.0b0",
+  "topics": [
+    "openai",
+    "conversation",
+    "llm",
+    "home-assistant",
+    "integration",
+    "ai"
+  ]
 }
