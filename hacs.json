@@ -1,5 +1,5 @@
 {
-  "name": "Extended OpenAI Conversation",
+  "name": "llm homeassistant",
   "render_readme": true,
   "homeassistant": "2024.1.0b0"
 }

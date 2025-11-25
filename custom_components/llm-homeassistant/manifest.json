@@ -1,6 +1,6 @@
 {
-  "domain": "extended_openai_conversation",
-  "name": "Extended OpenAI Conversation",
+  "domain": "llm-homeassistant",
+  "name": "LLM HOMEASSISTANT",
   "codeowners": [
     "@jekalmin"
   ],
