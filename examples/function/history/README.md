@@ -1,6 +1,6 @@
 ## Objective
 
-<img width="300" src="https://github.com/jekalmin/llm_homeassistant/assets/2917984/32217f3d-10fc-4001-9028-717b1683573b">
+<img width="300" src="https://github.com/esjavadex/llm_homeassistant/assets/2917984/32217f3d-10fc-4001-9028-717b1683573b">
 
 
 ## Function

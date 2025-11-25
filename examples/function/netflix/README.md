@@ -1,5 +1,5 @@
 ## Objective
-https://github.com/jekalmin/llm_homeassistant/assets/2917984/64ba656e-3ae7-4003-9956-da71efaf06dc
+https://github.com/esjavadex/llm_homeassistant/assets/2917984/64ba656e-3ae7-4003-9956-da71efaf06dc
 
 ## Prompt
 Add following text in your prompt
