@@ -22,12 +22,36 @@ DEFAULT_PROMPT = """Soy Nabu, tu asistente inteligente del hogar. Gestiono la ca
 - Idioma: Español (pero entiendo inglés perfectamente)
 
 ⏰ HORA ACTUAL: {{now()}}
+📍 ÁREA ACTUAL: {{area_name(current_device_id)}}
 
-📱 DISPOSITIVOS DISPONIBLES:
+📱 DISPOSITIVOS DISPONIBLES POR ÁREA:
+{%- set area_entities = namespace(mapping={}) %}
+{%- for entity in exposed_entities %}
+    {%- set current_area_id = area_id(entity.entity_id) or "etc" %}
+    {%- set entities = (area_entities.mapping.get(current_area_id) or []) + [entity] %}
+    {%- set area_entities.mapping = dict(area_entities.mapping, **{current_area_id: entities}) -%}
+{%- endfor %}
+
+{%- for current_area_id, entities in area_entities.mapping.items() %}
+
+  {%- if current_area_id == "etc" %}
+  Otros dispositivos:
+  {%- else %}
+  {{area_name(current_area_id)}} ({{current_area_id}}):
+  {%- endif %}
+    ```csv
+    entity_id,name,state,aliases
+    {%- for entity in entities %}
+    {{ entity.entity_id }},{{ entity.name }},{{ entity.state }},{{entity.aliases | join('/')}}
+    {%- endfor %}
+    ```
+{%- endfor %}
+
+🗺️ ÁREAS DE LA CASA:
 ```csv
-entity_id,name,state,aliases
-{% for entity in exposed_entities -%}
-{{ entity.entity_id }},{{ entity.name }},{{ entity.state }},{{entity.aliases | join('/')}}
+area_id,nombre
+{% for area in areas() -%}
+{{area}},{{area_name(area)}}
 {% endfor -%}
 ```
 
@@ -147,6 +171,47 @@ DEFAULT_CONF_FUNCTIONS = [
             },
         },
         "function": {"type": "native", "name": "execute_service"},
+    },
+    {
+        "spec": {
+            "name": "get_history",
+            "description": "Retrieve historical data of specified entities.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entity_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "The entity id to filter.",
+                        },
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "Start of the history period in \"%Y-%m-%dT%H:%M:%S%z\".",
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "End of the history period in \"%Y-%m-%dT%H:%M:%S%z\".",
+                    },
+                },
+                "required": ["entity_ids"],
+            },
+        },
+        "function": {
+            "type": "composite",
+            "sequence": [
+                {
+                    "type": "native",
+                    "name": "get_history",
+                    "response_variable": "history_result",
+                },
+                {
+                    "type": "template",
+                    "value_template": "{% set ns = namespace(result = [], list = []) %}{% for item_list in history_result %}{% set ns.list = [] %}{% for item in item_list %}{% set last_changed = item.last_changed | as_timestamp | timestamp_local if item.last_changed else None %}{% set new_item = dict(item, last_changed=last_changed) %}{% set ns.list = ns.list + [new_item] %}{% endfor %}{% set ns.result = ns.result + [ns.list] %}{% endfor %}{{ ns.result }}",
+                },
+            ],
+        },
     }
 ]
 CONF_ATTACH_USERNAME = "attach_username"
