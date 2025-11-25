@@ -15,4 +15,4 @@ This repository contains production-level code that is actively used. When makin
 
 ## Project Overview
 
-This is the llm-homeassistant project - a Home Assistant integration for LLM-based conversations.
+This is the llm_homeassistant project - a Home Assistant integration for LLM-based conversations.

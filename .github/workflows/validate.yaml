@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate-llm-homeassistant:
+  validate-llm_homeassistant:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v3"
-      - name: llm-homeassistant validation
+      - name: llm_homeassistant validation
         uses: "hacs/action@main"
         with:
           category: "integration"

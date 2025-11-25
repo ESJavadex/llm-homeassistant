@@ -1,5 +1,5 @@
 {
-  "domain": "llm-homeassistant",
+  "domain": "llm_homeassistant",
   "name": "LLM HOMEASSISTANT",
   "codeowners": [
     "@jekalmin"

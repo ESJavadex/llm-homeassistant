@@ -3,7 +3,7 @@
 ## Objective
 - Call service via area_id
 
-<img width="300" src="https://github.com/jekalmin/llm-homeassistant/assets/2917984/78a5c829-a6b4-4f76-8c68-9fe0ccdca2e8">
+<img width="300" src="https://github.com/jekalmin/llm_homeassistant/assets/2917984/78a5c829-a6b4-4f76-8c68-9fe0ccdca2e8">
 
 
 ## Function

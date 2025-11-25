@@ -4,7 +4,7 @@ query_image:
       required: true
       selector:
         config_entry:
-          integration: llm-homeassistant
+          integration: llm_homeassistant
     model:
       example: gpt-4-vision-preview
       selector:

@@ -1,6 +1,6 @@
 """Constants for the LLM HOMEASSISTANT integration."""
 
-DOMAIN = "llm-homeassistant"
+DOMAIN = "llm_homeassistant"
 DEFAULT_NAME = "LLM HOMEASSISTANT"
 CONF_ORGANIZATION = "organization"
 CONF_BASE_URL = "base_url"
