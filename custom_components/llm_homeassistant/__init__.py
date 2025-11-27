@@ -190,21 +190,37 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         # Check for existing conversation history in persistent storage
         existing_messages = None
-        if user_input.conversation_id:
-            existing_messages = self._get_chat_log(user_input.conversation_id)
+        incoming_conv_id = user_input.conversation_id
+        stored_conv_ids = list(self.hass.data[DOMAIN][DATA_CHAT_LOGS].keys())
+
+        _LOGGER.info(
+            "Incoming conversation_id: %s (type: %s), stored conversations: %s",
+            incoming_conv_id,
+            type(incoming_conv_id).__name__,
+            stored_conv_ids,
+        )
+
+        if incoming_conv_id:
+            existing_messages = self._get_chat_log(incoming_conv_id)
+            _LOGGER.info(
+                "Lookup result for %s: %s",
+                incoming_conv_id,
+                "FOUND" if existing_messages else "NOT FOUND",
+            )
 
         if existing_messages is not None:
             conversation_id = user_input.conversation_id
             messages = existing_messages
-            _LOGGER.debug(
+            _LOGGER.info(
                 "Resuming conversation %s with %d messages",
                 conversation_id,
                 len(messages),
             )
         else:
             # New conversation - generate new ID and system message
-            conversation_id = ulid.ulid() if not user_input.conversation_id else user_input.conversation_id
+            conversation_id = ulid.ulid() if not incoming_conv_id else incoming_conv_id
             user_input.conversation_id = conversation_id
+            _LOGGER.info("Creating NEW conversation with id: %s", conversation_id)
             try:
                 system_message = self._generate_system_message(
                     exposed_entities, user_input
@@ -220,7 +236,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     response=intent_response, conversation_id=conversation_id
                 )
             messages = [system_message]
-            _LOGGER.debug("Starting new conversation %s", conversation_id)
         user_message = {"role": "user", "content": user_input.text}
         if self.entry.options.get(CONF_ATTACH_USERNAME, DEFAULT_ATTACH_USERNAME):
             user = user_input.context.user_id
