@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-11-27
+
+### Added
+
+#### Multi-Turn Conversation Support
+- **Persistent conversation history**: Messages are now stored in `hass.data` instead of agent instance
+  - History persists across agent reloads
+  - Each conversation maintains independent context via `conversation_id`
+  - Full message history sent to LLM for proper context awareness
+- **clear_history service**: New service to reset conversation state
+  - Clear all conversations: `service: llm_homeassistant.clear_history`
+  - Clear specific conversation: `service: llm_homeassistant.clear_history` with `conversation_id`
+
+### Improved
+- Added detailed logging for conversation flow debugging
+- Better handling of conversation_id for multi-turn support
+
+---
+
 ## [1.1.0] - 2025-01-25
 
 ### Added
@@ -77,5 +96,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.0]: https://github.com/esjavadex/llm-homeassistant/releases/tag/v1.2.0
 [1.1.0]: https://github.com/esjavadex/llm-homeassistant/releases/tag/v1.1.0
 [1.0.5]: https://github.com/esjavadex/llm-homeassistant/releases/tag/v1.0.5
