@@ -83,10 +83,14 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # hass.data key for agent.
 DATA_AGENT = "agent"
+# hass.data key for chat logs (persists across agent reloads)
+DATA_CHAT_LOGS = "chat_logs"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up OpenAI Conversation."""
+    # Initialize global chat logs storage for multi-turn conversation persistence
+    hass.data.setdefault(DOMAIN, {}).setdefault(DATA_CHAT_LOGS, {})
     await async_setup_services(hass, config)
     return True
 
@@ -135,7 +139,8 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         """Initialize the agent."""
         self.hass = hass
         self.entry = entry
-        self.history: dict[str, list[dict]] = {}
+        # Ensure chat logs storage exists (in case async_setup wasn't called)
+        hass.data.setdefault(DOMAIN, {}).setdefault(DATA_CHAT_LOGS, {})
         base_url = entry.data.get(CONF_BASE_URL)
         if is_azure(base_url):
             self.client = AsyncAzureOpenAI(
@@ -160,16 +165,45 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         """Return a list of supported languages."""
         return MATCH_ALL
 
+    def _get_chat_log(self, conversation_id: str) -> list[dict] | None:
+        """Retrieve chat log for a conversation from persistent storage."""
+        return self.hass.data[DOMAIN][DATA_CHAT_LOGS].get(conversation_id)
+
+    def _save_chat_log(self, conversation_id: str, messages: list[dict]) -> None:
+        """Save chat log to persistent storage."""
+        self.hass.data[DOMAIN][DATA_CHAT_LOGS][conversation_id] = messages
+
+    def clear_conversation_history(self, conversation_id: str | None = None) -> None:
+        """Clear conversation history. If conversation_id is None, clears all."""
+        chat_logs = self.hass.data[DOMAIN][DATA_CHAT_LOGS]
+        if conversation_id is None:
+            chat_logs.clear()
+            _LOGGER.info("Cleared all conversation history")
+        elif conversation_id in chat_logs:
+            del chat_logs[conversation_id]
+            _LOGGER.info("Cleared conversation history for %s", conversation_id)
+
     async def async_process(
         self, user_input: conversation.ConversationInput
     ) -> conversation.ConversationResult:
         exposed_entities = self.get_exposed_entities()
 
-        if user_input.conversation_id in self.history:
+        # Check for existing conversation history in persistent storage
+        existing_messages = None
+        if user_input.conversation_id:
+            existing_messages = self._get_chat_log(user_input.conversation_id)
+
+        if existing_messages is not None:
             conversation_id = user_input.conversation_id
-            messages = self.history[conversation_id]
+            messages = existing_messages
+            _LOGGER.debug(
+                "Resuming conversation %s with %d messages",
+                conversation_id,
+                len(messages),
+            )
         else:
-            conversation_id = ulid.ulid()
+            # New conversation - generate new ID and system message
+            conversation_id = ulid.ulid() if not user_input.conversation_id else user_input.conversation_id
             user_input.conversation_id = conversation_id
             try:
                 system_message = self._generate_system_message(
@@ -186,6 +220,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     response=intent_response, conversation_id=conversation_id
                 )
             messages = [system_message]
+            _LOGGER.debug("Starting new conversation %s", conversation_id)
         user_message = {"role": "user", "content": user_input.text}
         if self.entry.options.get(CONF_ATTACH_USERNAME, DEFAULT_ATTACH_USERNAME):
             user = user_input.context.user_id
@@ -199,7 +234,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except OpenAIError as err:
             _LOGGER.error(err)
             # Save partial history even on error to preserve context
-            self.history[conversation_id] = messages
+            self._save_chat_log(conversation_id, messages)
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -211,7 +246,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         except HomeAssistantError as err:
             _LOGGER.error(err, exc_info=err)
             # Save partial history even on error to preserve context
-            self.history[conversation_id] = messages
+            self._save_chat_log(conversation_id, messages)
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -222,7 +257,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
 
         messages.append(query_response.message.model_dump(exclude_none=True))
-        self.history[conversation_id] = messages
+        self._save_chat_log(conversation_id, messages)
 
         self.hass.bus.async_fire(
             EVENT_CONVERSATION_FINISHED,

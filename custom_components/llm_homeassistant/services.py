@@ -21,7 +21,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, selector
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, SERVICE_QUERY_IMAGE
+from .const import DOMAIN, SERVICE_CLEAR_HISTORY, SERVICE_QUERY_IMAGE
 
 QUERY_IMAGE_SCHEMA = vol.Schema(
     {
@@ -34,6 +34,12 @@ QUERY_IMAGE_SCHEMA = vol.Schema(
         vol.Required("prompt"): cv.string,
         vol.Required("images"): vol.All(cv.ensure_list, [{"url": cv.string}]),
         vol.Optional("max_tokens", default=300): cv.positive_int,
+    }
+)
+
+CLEAR_HISTORY_SCHEMA = vol.Schema(
+    {
+        vol.Optional("conversation_id"): cv.string,
     }
 )
 
@@ -80,6 +86,28 @@ async def async_setup_services(hass: HomeAssistant, config: ConfigType) -> None:
         query_image,
         schema=QUERY_IMAGE_SCHEMA,
         supports_response=SupportsResponse.ONLY,
+    )
+
+    async def clear_history(call: ServiceCall) -> None:
+        """Clear conversation history."""
+        conversation_id = call.data.get("conversation_id")
+        chat_logs = hass.data.get(DOMAIN, {}).get("chat_logs", {})
+
+        if conversation_id:
+            if conversation_id in chat_logs:
+                del chat_logs[conversation_id]
+                _LOGGER.info("Cleared conversation history for %s", conversation_id)
+            else:
+                _LOGGER.warning("Conversation %s not found", conversation_id)
+        else:
+            chat_logs.clear()
+            _LOGGER.info("Cleared all conversation history")
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_HISTORY,
+        clear_history,
+        schema=CLEAR_HISTORY_SCHEMA,
     )
 
 
